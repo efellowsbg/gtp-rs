@@ -294,7 +294,10 @@ impl Messages for CreateBearerResponse {
         }
         match (mandatory[0], mandatory[1]) {
             (false, _) => Err(GTPV2Error::MessageMandatoryIEMissing(CAUSE)),
-            (_, false) => Err(GTPV2Error::MessageMandatoryIEMissing(BEARER_CTX)),
+            (_, false) => match self.cause.value {
+                64 => Ok(true),
+                _ => Err(GTPV2Error::MessageMandatoryIEMissing(BEARER_CTX)),
+            },
             (true, true) => Ok(true),
         }
     }
@@ -522,4 +525,34 @@ fn test_create_bearer_resp_marshal() {
     let mut buffer: Vec<u8> = vec![];
     decoded.marshal(&mut buffer);
     assert_eq!(buffer, encoded);
+}
+
+#[test]
+fn test_create_bearer_resp_unmarshal_cause_not_found() {
+    // when the cause is "context not found", no bearer contexts are required
+    let msg = CreateBearerResponse {
+        header: Gtpv2Header {
+            msgtype: CREATE_BEARER_RESP,
+            piggyback: false,
+            message_prio: None,
+            length: 105,
+            teid: Some(0x0909a456),
+            sqn: 0x2f,
+        },
+        cause: Cause {
+            t: CAUSE,
+            length: 2,
+            ins: 0,
+            value: 64,
+            pce: false,
+            bce: false,
+            cs: false,
+            offend_ie_type: None,
+        },
+        ..CreateBearerResponse::default()
+    };
+    let mut buffer: Vec<u8> = vec![];
+    msg.marshal(&mut buffer);
+    let decoded = CreateBearerResponse::unmarshal(&buffer);
+    assert!(decoded.is_ok());
 }
