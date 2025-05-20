@@ -287,9 +287,11 @@ impl Messages for UpdateBearerResponse {
             }
         }
         match (mandatory[0], mandatory[1]) {
-            (false, false) => Err(GTPV2Error::MessageMandatoryIEMissing(CAUSE)),
-            (false, true) => Err(GTPV2Error::MessageMandatoryIEMissing(CAUSE)),
-            (true, false) => Err(GTPV2Error::MessageMandatoryIEMissing(BEARER_CTX)),
+            (false, _) => Err(GTPV2Error::MessageMandatoryIEMissing(CAUSE)),
+            (_, false) => match self.cause.value {
+                64 => Ok(true),
+                _ => Err(GTPV2Error::MessageMandatoryIEMissing(BEARER_CTX))
+            },
             (true, true) => Ok(true),
         }
     }
@@ -518,4 +520,25 @@ fn test_update_bearer_resp_marshal() {
     decoded.marshal(&mut buffer);
     //buffer.iter().for_each( |x| print!(" {:#04x},", x));
     assert_eq!(buffer, encoded);
+}
+
+#[test]
+fn test_update_bearer_resp_marshal_unmarshal_cause_context_not_found() {
+    let msg = UpdateBearerResponse {
+        cause: Cause {
+            t: CAUSE,
+            length: 2,
+            ins: 0,
+            value: 64,
+            pce: false,
+            bce: false,
+            cs: false,
+            offend_ie_type: None,
+        },
+        ..UpdateBearerResponse::default()
+    };
+    let mut buffer: Vec<u8> = vec![];
+    msg.marshal(&mut buffer);
+    let decoded = UpdateBearerResponse::unmarshal(&buffer);
+    assert!(decoded.is_ok());
 }
