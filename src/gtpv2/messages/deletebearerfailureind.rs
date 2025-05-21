@@ -136,9 +136,11 @@ impl Messages for DeleteBearerFailureInd {
             }
         }
         match (mandatory, self.bearer_ctxs.is_empty()) {
-            (false, false) => Err(GTPV2Error::MessageMandatoryIEMissing(CAUSE)),
-            (true, true) => Err(GTPV2Error::MessageMandatoryIEMissing(BEARER_CTX)),
-            (false, true) => Err(GTPV2Error::MessageMandatoryIEMissing(CAUSE)),
+            (false, _) => Err(GTPV2Error::MessageMandatoryIEMissing(CAUSE)),
+            (_, true) => match self.cause.value {
+                64 => Ok(true),
+                _ => Err(GTPV2Error::MessageMandatoryIEMissing(BEARER_CTX)),
+            },
             (true, false) => Ok(true),
         }
     }
@@ -382,4 +384,25 @@ fn test_delete_bearer_failure_ind_marshal() {
     decoded.marshal(&mut buffer);
     //buffer.iter().for_each( |x| print!(" {:#04x},", x));
     assert_eq!(buffer, encoded);
+}
+
+#[test]
+fn test_delete_bearer_failure_ind_marshal_unmarshal_cause_context_not_found() {
+    let msg = DeleteBearerFailureInd {
+        cause: Cause {
+            t: CAUSE,
+            length: 2,
+            ins: 0,
+            value: 64,
+            pce: false,
+            bce: false,
+            cs: false,
+            offend_ie_type: None,
+        },
+        ..DeleteBearerFailureInd::default()
+    };
+    let mut buffer: Vec<u8> = vec![];
+    msg.marshal(&mut buffer);
+    let decoded = DeleteBearerFailureInd::unmarshal(&buffer);
+    assert!(decoded.is_ok());
 }
