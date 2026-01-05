@@ -53,7 +53,7 @@ impl IEs for ApnRelativeCapacity {
             z.extend_from_slice(i.as_bytes());
         }
         buffer_ie.append(&mut z);
-        set_tliv_ie_length(&mut buffer_ie);
+        //set_tliv_ie_length(&mut buffer_ie);
         buffer.append(&mut buffer_ie);
     }
 
