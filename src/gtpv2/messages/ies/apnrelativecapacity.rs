@@ -41,12 +41,14 @@ impl From<ApnRelativeCapacity> for InformationElement {
 
 impl IEs for ApnRelativeCapacity {
     fn marshal(&self, buffer: &mut Vec<u8>) {
+        println!("{:?}", self);
         let mut buffer_ie: Vec<u8> = vec![];
         buffer_ie.push(APN_REL_CAP);
         buffer_ie.extend_from_slice(&self.length.to_be_bytes());
         buffer_ie.push(self.ins);
         buffer_ie.push(self.relative_cap);
         let n: Vec<_> = self.name.split('.').collect();
+        println!("{:?}", n);
         let mut z: Vec<u8> = vec![];
         for i in n.iter() {
             z.push(i.len() as u8);
