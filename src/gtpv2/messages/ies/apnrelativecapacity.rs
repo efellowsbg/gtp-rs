@@ -44,9 +44,8 @@ impl IEs for ApnRelativeCapacity {
         println!("{:?}", self);
         let mut buffer_ie: Vec<u8> = vec![];
         buffer_ie.push(APN_REL_CAP);
-        buffer_ie.extend_from_slice(&self.length.to_be_bytes());
-        buffer_ie.push(self.ins);
-        buffer_ie.push(self.relative_cap);
+        
+        // Encode the APN name first to calculate the correct length
         let n: Vec<_> = self.name.split('.').collect();
         println!("{:?}", n);
         let mut z: Vec<u8> = vec![];
@@ -54,8 +53,14 @@ impl IEs for ApnRelativeCapacity {
             z.push(i.len() as u8);
             z.extend_from_slice(i.as_bytes());
         }
+        
+        // Calculate the correct length: 1 byte for relative_cap + encoded APN length
+        let correct_length = (1 + z.len()) as u16;
+        
+        buffer_ie.extend_from_slice(&correct_length.to_be_bytes());
+        buffer_ie.push(self.ins);
+        buffer_ie.push(self.relative_cap);
         buffer_ie.append(&mut z);
-        //set_tliv_ie_length(&mut buffer_ie);
         buffer.append(&mut buffer_ie);
     }
 
