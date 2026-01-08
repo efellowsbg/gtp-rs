@@ -73,20 +73,19 @@ impl IEs for ApnRelativeCapacity {
             i if i <= 100 => data.relative_cap = buffer[4],
             _ => data.relative_cap = 0,
         }
-        let mut donor: Vec<u8> = buffer[5..MIN_IE_SIZE + data.length as usize].to_vec();
-        let mut k: Vec<Vec<char>> = vec![];
-        while !donor.is_empty() {
-            let index: Vec<_> = donor.drain(..1).collect();
-            let mut part: Vec<_> = donor
-                .drain(..index[0] as usize)
-                .map(|x| x as char)
-                .collect();
-            part.push('.');
-            k.push(part);
+        let apn_length = buffer[5] as usize;
+        let mut apn_encoded = &buffer[6..=6 + apn_length];
+
+        let mut apn_decoded: Vec<u8> = vec![];
+        while apn_decoded.len() < apn_length {
+            let label_length = apn_encoded[0] as usize;
+            apn_decoded.extend_from_slice(&apn_encoded[1..1 + label_length]);
+            apn_decoded.push(b'.');
+            apn_encoded = &apn_encoded[1 + label_length..];
         }
-        let mut p: Vec<char> = k.into_iter().flatten().collect();
-        let _ = p.pop();
-        data.name = p.into_iter().collect();
+        apn_decoded.pop(); // Remove the trailing dot
+        data.name = String::from_utf8(apn_decoded).unwrap();
+
         Ok(data)
     }
 
@@ -125,13 +124,13 @@ fn apn_rel_cap_ie_marshal_test() {
 
 #[test]
 fn apn_rel_cap_ie_unmarshal_test() {
-    let encoded: [u8; 18] = [
-        0xb8, 0x00, 0x0e, 0x00, 0x64, 0x04, 0x74, 0x65, 0x73, 0x74, 0x03, 0x6e, 0x65, 0x74, 0x03,
+    let encoded: [u8; 19] = [
+        0xb8, 0x00, 0x0f, 0x00, 0x64, 0x0c, 0x04, 0x74, 0x65, 0x73, 0x74, 0x03, 0x6e, 0x65, 0x74, 0x03,
         0x63, 0x6f, 0x6d,
     ];
     let decoded = ApnRelativeCapacity {
         t: APN_REL_CAP,
-        length: 14,
+        length: 15,
         ins: 0,
         relative_cap: 100,
         name: "test.net.com".to_string(),
