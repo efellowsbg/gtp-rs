@@ -58,42 +58,36 @@ impl IEs for ApnRelativeCapacity {
     }
 
     fn unmarshal(buffer: &[u8]) -> Result<Self, GTPV2Error> {
-        if buffer.len() >= MIN_IE_SIZE {
-            let mut data = ApnRelativeCapacity {
-                length: u16::from_be_bytes([buffer[1], buffer[2]]),
-                ins: buffer[3] & 0x0f,
-                ..ApnRelativeCapacity::default()
-            };
-            if check_tliv_ie_buffer(data.length, buffer) {
-                match buffer[4] {
-                    i if i <= 100 => data.relative_cap = buffer[4],
-                    _ => data.relative_cap = 0,
-                }
-                let mut donor: Vec<u8> = buffer[5..MIN_IE_SIZE + data.length as usize].to_vec();
-                let mut k: Vec<Vec<char>> = vec![];
-                loop {
-                    if !donor.is_empty() {
-                        let index: Vec<_> = donor.drain(..1).collect();
-                        let mut part: Vec<_> = donor
-                            .drain(..index[0] as usize)
-                            .map(|x| x as char)
-                            .collect();
-                        part.push('.');
-                        k.push(part);
-                    } else {
-                        break;
-                    }
-                }
-                let mut p: Vec<char> = k.into_iter().flatten().collect();
-                let _ = p.pop();
-                data.name = p.into_iter().collect();
-                Ok(data)
-            } else {
-                Err(GTPV2Error::IEInvalidLength(APN_REL_CAP))
-            }
-        } else {
-            Err(GTPV2Error::IEInvalidLength(APN_REL_CAP))
+        if buffer.len() < MIN_IE_SIZE {
+            return Err(GTPV2Error::IEInvalidLength(APN_REL_CAP));
         }
+        let mut data = ApnRelativeCapacity {
+            length: u16::from_be_bytes([buffer[1], buffer[2]]),
+            ins: buffer[3] & 0x0f,
+            ..ApnRelativeCapacity::default()
+        };
+        if !check_tliv_ie_buffer(data.length, buffer) {
+            return Err(GTPV2Error::IEInvalidLength(APN_REL_CAP));
+        }
+        match buffer[4] {
+            i if i <= 100 => data.relative_cap = buffer[4],
+            _ => data.relative_cap = 0,
+        }
+        let mut donor: Vec<u8> = buffer[5..MIN_IE_SIZE + data.length as usize].to_vec();
+        let mut k: Vec<Vec<char>> = vec![];
+        while !donor.is_empty() {
+            let index: Vec<_> = donor.drain(..1).collect();
+            let mut part: Vec<_> = donor
+                .drain(..index[0] as usize)
+                .map(|x| x as char)
+                .collect();
+            part.push('.');
+            k.push(part);
+        }
+        let mut p: Vec<char> = k.into_iter().flatten().collect();
+        let _ = p.pop();
+        data.name = p.into_iter().collect();
+        Ok(data)
     }
 
     fn len(&self) -> usize {
