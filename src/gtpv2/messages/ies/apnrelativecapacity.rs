@@ -48,6 +48,8 @@ impl IEs for ApnRelativeCapacity {
         buffer_ie.push(self.relative_cap);
         let n: Vec<_> = self.name.split('.').collect();
         let mut z: Vec<u8> = vec![];
+        let apn_length: u8 = n.iter().map(|s| s.len() as u8).sum();
+        z.push(apn_length);
         for i in n.iter() {
             z.push(i.len() as u8);
             z.extend_from_slice(i.as_bytes());
@@ -107,8 +109,8 @@ impl IEs for ApnRelativeCapacity {
 
 #[test]
 fn apn_rel_cap_ie_marshal_test() {
-    let encoded: [u8; 18] = [
-        0xb8, 0x00, 0x0e, 0x00, 0x64, 0x04, 0x74, 0x65, 0x73, 0x74, 0x03, 0x6e, 0x65, 0x74, 0x03,
+    let encoded: [u8; 19] = [
+        0xb8, 0x00, 0x0f, 0x00, 0x64, 0x0a, 0x04, 0x74, 0x65, 0x73, 0x74, 0x03, 0x6e, 0x65, 0x74, 0x03,
         0x63, 0x6f, 0x6d,
     ];
     let decoded = ApnRelativeCapacity {
