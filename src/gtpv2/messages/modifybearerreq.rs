@@ -487,11 +487,13 @@ fn test_modify_bearer_req_unmarshal() {
                 Location::Tai(Tai {
                     mcc: 234,
                     mnc: 20,
+                    mnc_is_three_digits: false,
                     tac: 0x0d59,
                 }),
                 Location::Ecgi(Ecgi {
                     mcc: 234,
                     mnc: 20,
+                    mnc_is_three_digits: false,
                     eci: 12933122,
                 }),
             ],
@@ -502,6 +504,7 @@ fn test_modify_bearer_req_unmarshal() {
             ins: 0,
             mcc: 234,
             mnc: 20,
+            mnc_is_three_digits: false,
         }),
         fteid_control: Some(Fteid {
             t: FTEID,
@@ -594,7 +597,7 @@ fn test_modify_bearer_req_marshal() {
         0x05, 0x57, 0x00, 0x09, 0x01, 0x84, 0x15, 0xe9, /* .W...... */
         0xe7, 0xcc, 0xd5, 0xb5, 0x3c, 0x70, 0x03, 0x00, /* ....<p.. */
         0x01, 0x00, 0x15, 0x72, 0x00, 0x02, /* .....r.. */
-        0x00, 0x40, 0x00, 0xff, 0x00, 0x06, 0x00, 0x07, /* ........ */
+        0x00, 0x01, 0x00, 0xff, 0x00, 0x06, 0x00, 0x07, /* ........ */
         0xdb, 0x07, 0x00, 0x01, 0x00,
     ];
     let decoded = ModifyBearerRequest {
@@ -626,11 +629,13 @@ fn test_modify_bearer_req_marshal() {
                 Location::Tai(Tai {
                     mcc: 206,
                     mnc: 1,
+                    mnc_is_three_digits: false,
                     tac: 0x0c3f,
                 }),
                 Location::Ecgi(Ecgi {
                     mcc: 206,
                     mnc: 1,
+                    mnc_is_three_digits: false,
                     eci: 46196230,
                 }),
             ],
@@ -641,6 +646,7 @@ fn test_modify_bearer_req_marshal() {
             ins: 0,
             mcc: 206,
             mnc: 1,
+            mnc_is_three_digits: false,
         }),
         fteid_control: Some(Fteid {
             t: FTEID,

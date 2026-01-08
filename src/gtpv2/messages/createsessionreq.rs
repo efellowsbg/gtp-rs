@@ -768,7 +768,7 @@ fn test_create_session_req_unmarshal() {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ........ */
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ........ */
         0x00, 0x00, 0x00, 0x03, 0x00, 0x01, 0x00, 0xbb, /* ........ */
-        0x72, 0x00, 0x02, 0x00, 0x80, 0x01, 0x5f, 0x00, /* r....._. */
+        0x72, 0x00, 0x02, 0x00, 0x02, 0x01, 0x5f, 0x00, /* r....._. */
         0x02, 0x00, 0x08, 0x00,
     ];
     let decoded = CreateSessionRequest {
@@ -806,11 +806,13 @@ fn test_create_session_req_unmarshal() {
                 Location::Tai(Tai {
                     mcc: 262,
                     mnc: 1,
+                    mnc_is_three_digits: false,
                     tac: 0x0bd9,
                 }),
                 Location::Ecgi(Ecgi {
                     mcc: 262,
                     mnc: 1,
+                    mnc_is_three_digits: false,
                     eci: 28983298,
                 }),
             ],
@@ -821,6 +823,7 @@ fn test_create_session_req_unmarshal() {
             ins: 0,
             mcc: 262,
             mnc: 1,
+            mnc_is_three_digits: false,
         }),
         rattype: RatType {
             t: RATTYPE,
@@ -989,7 +992,7 @@ fn test_create_session_req_marshal() {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ........ */
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ........ */
         0x00, 0x00, 0x00, 0x03, 0x00, 0x01, 0x00, 0xbb, /* ........ */
-        0x72, 0x00, 0x02, 0x00, 0x80, 0x01, 0x5f, 0x00, /* r....._. */
+        0x72, 0x00, 0x02, 0x00, 0x02, 0x01, 0x5f, 0x00, /* r....._. */
         0x02, 0x00, 0x08, 0x00,
     ];
     let decoded = CreateSessionRequest {
@@ -1027,11 +1030,13 @@ fn test_create_session_req_marshal() {
                 Location::Tai(Tai {
                     mcc: 262,
                     mnc: 1,
+                    mnc_is_three_digits: false,
                     tac: 0x0bd9,
                 }),
                 Location::Ecgi(Ecgi {
                     mcc: 262,
                     mnc: 1,
+                    mnc_is_three_digits: false,
                     eci: 28983298,
                 }),
             ],
@@ -1042,6 +1047,7 @@ fn test_create_session_req_marshal() {
             ins: 0,
             mcc: 262,
             mnc: 1,
+            mnc_is_three_digits: false,
         }),
         rattype: RatType {
             t: RATTYPE,
