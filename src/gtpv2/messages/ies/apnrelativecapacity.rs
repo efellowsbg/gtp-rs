@@ -46,11 +46,11 @@ impl IEs for ApnRelativeCapacity {
         buffer_ie.extend_from_slice(&self.length.to_be_bytes());
         buffer_ie.push(self.ins);
         buffer_ie.push(self.relative_cap);
-        let n: Vec<_> = self.name.split('.').collect();
         let mut z: Vec<u8> = vec![];
-        for i in n.iter() {
-            z.push(i.len() as u8);
-            z.extend_from_slice(i.as_bytes());
+        z.push(self.name.len() as u8 + 1);
+        for part in self.name.split('.') {
+            z.push(part.len() as u8);
+            z.extend_from_slice(part.as_bytes());
         }
         buffer_ie.append(&mut z);
         set_tliv_ie_length(&mut buffer_ie);
@@ -58,42 +58,35 @@ impl IEs for ApnRelativeCapacity {
     }
 
     fn unmarshal(buffer: &[u8]) -> Result<Self, GTPV2Error> {
-        if buffer.len() >= MIN_IE_SIZE {
-            let mut data = ApnRelativeCapacity {
-                length: u16::from_be_bytes([buffer[1], buffer[2]]),
-                ins: buffer[3] & 0x0f,
-                ..ApnRelativeCapacity::default()
-            };
-            if check_tliv_ie_buffer(data.length, buffer) {
-                match buffer[4] {
-                    i if i <= 100 => data.relative_cap = buffer[4],
-                    _ => data.relative_cap = 0,
-                }
-                let mut donor: Vec<u8> = buffer[5..MIN_IE_SIZE + data.length as usize].to_vec();
-                let mut k: Vec<Vec<char>> = vec![];
-                loop {
-                    if !donor.is_empty() {
-                        let index: Vec<_> = donor.drain(..1).collect();
-                        let mut part: Vec<_> = donor
-                            .drain(..index[0] as usize)
-                            .map(|x| x as char)
-                            .collect();
-                        part.push('.');
-                        k.push(part);
-                    } else {
-                        break;
-                    }
-                }
-                let mut p: Vec<char> = k.into_iter().flatten().collect();
-                let _ = p.pop();
-                data.name = p.into_iter().collect();
-                Ok(data)
-            } else {
-                Err(GTPV2Error::IEInvalidLength(APN_REL_CAP))
-            }
-        } else {
-            Err(GTPV2Error::IEInvalidLength(APN_REL_CAP))
+        if buffer.len() < MIN_IE_SIZE {
+            return Err(GTPV2Error::IEInvalidLength(APN_REL_CAP));
         }
+        let mut data = ApnRelativeCapacity {
+            length: u16::from_be_bytes([buffer[1], buffer[2]]),
+            ins: buffer[3] & 0x0f,
+            ..ApnRelativeCapacity::default()
+        };
+        if !check_tliv_ie_buffer(data.length, buffer) {
+            return Err(GTPV2Error::IEInvalidLength(APN_REL_CAP));
+        }
+        match buffer[4] {
+            i if i <= 100 => data.relative_cap = buffer[4],
+            _ => data.relative_cap = 0,
+        }
+        let apn_length = buffer[5] as usize;
+        let mut apn_encoded = &buffer[6..6 + apn_length];
+
+        let mut apn_decoded: Vec<u8> = vec![];
+        while apn_decoded.len() < apn_length {
+            let label_length = apn_encoded[0] as usize;
+            apn_decoded.extend_from_slice(&apn_encoded[1..1 + label_length]);
+            apn_decoded.push(b'.');
+            apn_encoded = &apn_encoded[1 + label_length..];
+        }
+        apn_decoded.pop(); // Remove the trailing dot
+        data.name = String::from_utf8(apn_decoded).unwrap();
+
+        Ok(data)
     }
 
     fn len(&self) -> usize {
@@ -113,13 +106,13 @@ impl IEs for ApnRelativeCapacity {
 
 #[test]
 fn apn_rel_cap_ie_marshal_test() {
-    let encoded: [u8; 18] = [
-        0xb8, 0x00, 0x0e, 0x00, 0x64, 0x04, 0x74, 0x65, 0x73, 0x74, 0x03, 0x6e, 0x65, 0x74, 0x03,
-        0x63, 0x6f, 0x6d,
+    let encoded: [u8; 19] = [
+        0xb8, 0x00, 0x0f, 0x00, 0x64, 0x0d, 0x04, 0x74, 0x65, 0x73, 0x74, 0x03, 0x6e, 0x65, 0x74,
+        0x03, 0x63, 0x6f, 0x6d,
     ];
     let decoded = ApnRelativeCapacity {
         t: APN_REL_CAP,
-        length: 14,
+        length: 15,
         ins: 0,
         relative_cap: 100,
         name: "test.net.com".to_string(),
@@ -131,16 +124,30 @@ fn apn_rel_cap_ie_marshal_test() {
 
 #[test]
 fn apn_rel_cap_ie_unmarshal_test() {
-    let encoded: [u8; 18] = [
-        0xb8, 0x00, 0x0e, 0x00, 0x64, 0x04, 0x74, 0x65, 0x73, 0x74, 0x03, 0x6e, 0x65, 0x74, 0x03,
-        0x63, 0x6f, 0x6d,
+    let encoded: [u8; 19] = [
+        0xb8, 0x00, 0x0f, 0x00, 0x64, 0x0d, 0x04, 0x74, 0x65, 0x73, 0x74, 0x03, 0x6e, 0x65, 0x74,
+        0x03, 0x63, 0x6f, 0x6d,
     ];
     let decoded = ApnRelativeCapacity {
         t: APN_REL_CAP,
-        length: 14,
+        length: 15,
         ins: 0,
         relative_cap: 100,
         name: "test.net.com".to_string(),
     };
     assert_eq!(ApnRelativeCapacity::unmarshal(&encoded).unwrap(), decoded);
+}
+
+#[test]
+fn apn_rel_cap_ie_marshal_unmarshal_test() {
+    let ie = ApnRelativeCapacity {
+        t: APN_REL_CAP,
+        length: 15,
+        ins: 0,
+        relative_cap: 100,
+        name: "test.net.com".to_string(),
+    };
+    let mut buf = vec![];
+    ie.marshal(&mut buf);
+    assert_eq!(ApnRelativeCapacity::unmarshal(&buf).unwrap(), ie);
 }
